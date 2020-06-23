@@ -60,7 +60,7 @@ def get_clipboard_history():
 			print("nothing new")
 		else:
 			with open("clipboard_hist.text", "a") as file:
-				file.write(pyperclip.paste())
+				file.write(str(pyperclip.paste()))
 				file.write("\n")
 			clipboard_history = pyperclip.paste()
 
