@@ -1,0 +1,9 @@
+pynput==1.6.8
+threaded==4.0.8
+requests==2.22.0
+pyperclip==1.8.0
+PyAudio==0.2.11
+opencv-contrib-python==4.2.0.34
+numpy==1.15.4
+scipy==1.4.1
+PyAutoGUI==0.9.50
