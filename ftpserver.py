@@ -2,15 +2,7 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 import config
-# The port the FTP server will listen on.
-# This must be greater than 1023 unless you run this script as root.
-# FTP_PORT = 2121
-# The name of the FTP user that can log in.
-# FTP_USER = "Aly Muhammad Aly"
-# The FTP user's password.
-# FTP_PASSWORD = "alyaly"
-# The directory the FTP user will have full read/write access to.
-# FTP_DIRECTORY = "."
+
 
 def main():
     authorizer = DummyAuthorizer()
