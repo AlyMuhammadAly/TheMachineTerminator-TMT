@@ -1,7 +1,7 @@
 
 ## About This Repository:
 
-Yo! Machine Terminator is a multiprocess hacking tool. It uses FTP for sending the generated files. It handles the folloing processes:
+YO! Machine Terminator is a multiprocess hacking tool. It uses FTP for sending the generated files. It handles the following processes:
 
    * Keylogging.
    * Screen recording.
