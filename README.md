@@ -22,8 +22,8 @@ The following video illustrates how the program works:
 	ftp_authentication = dict(
 		user = "<value>",
 		password = "<value>",
-		port = <value>,
-		address = "<value>",
+		port = <port value>,
+		address = "<ip address value>",
 		directory = "<value>",
 	)
 	
